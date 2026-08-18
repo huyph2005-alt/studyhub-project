@@ -61,10 +61,28 @@ def get_comments(post_id: int):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT comments.content, users.username as commenter 
+        SELECT comments.id, comments.content, users.username as commenter 
         FROM comments JOIN users ON comments.user_id = users.id 
         WHERE comments.post_id = ? ORDER BY comments.id ASC
     """, (post_id,))
     comments = cursor.fetchall()
     conn.close()
     return [dict(c) for c in comments]
+
+@router.delete("/comments/{comment_id}")
+def delete_comment(comment_id: int, user: dict = Depends(get_current_user)):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM comments WHERE id = ?", (comment_id,))
+    cmt = cursor.fetchone()
+    if not cmt:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Bình luận không tồn tại!")
+    if cmt["user_id"] != user["id"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Bạn không có quyền xóa bình luận này!")
+
+    cursor.execute("DELETE FROM comments WHERE id = ?", (comment_id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Đã xóa bình luận!"}

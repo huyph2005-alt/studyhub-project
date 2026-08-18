@@ -12,6 +12,9 @@ class ItemCreate(BaseModel):
     price: int
     content_url: str
 
+class UpdateItemPrice(BaseModel):
+    price: int
+
 class BuyItemRequest(BaseModel):
     item_id: int
 
