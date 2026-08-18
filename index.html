@@ -118,18 +118,25 @@
       }
     };
 
-    function switchAuth(mode) {
-      isLoginMode = mode === 'log';
-      document.getElementById("tabLog").className = `nav-btn ${isLoginMode ? 'active' : ''}`;
-      document.getElementById("tabReg").className = `nav-btn ${!isLoginMode ? 'active' : ''}`;
-      document.getElementById("btnSubmitAuth").innerText = isLoginMode ? "Đăng nhập" : "Đăng ký (Nhận 100 EduXu)";
-      document.getElementById("authMsg").innerText = "";
-    }
+async function submitAuth() {
+      const u = document.getElementById("authUsername").value.trim();
+      const p = document.getElementById("authPassword").value.trim();
+      const btn = document.getElementById("btnSubmitAuth");
+      const msg = document.getElementById("authMsg");
 
-    async function submitAuth() {
-      const u = document.getElementById("authUsername").value;
-      const p = document.getElementById("authPassword").value;
+      if (!u || !p) {
+        msg.style.color = "red";
+        msg.innerText = "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!";
+        return;
+      }
+
       const endpoint = isLoginMode ? "/login" : "/register";
+
+      // 1. Khóa nút bấm và báo hiệu đang tải để tránh spam request
+      btn.disabled = true;
+      btn.style.opacity = "0.7";
+      btn.innerText = isLoginMode ? "Đang đăng nhập..." : "Đang đăng ký...";
+      msg.innerText = "";
 
       try {
         const res = await fetch(API + endpoint, {
@@ -141,21 +148,26 @@
 
         if (res.ok) {
           if (isLoginMode) {
-            // LƯU TOKEN VÀO LOCALSTORAGE ĐỂ KHÔNG BỊ MẤT KHI TẢI LẠI TRANG
             localStorage.setItem("token", data.access_token);
             localStorage.setItem("username", u);
             showDashboard(u);
           } else {
-            document.getElementById("authMsg").style.color = "green";
-            document.getElementById("authMsg").innerText = "Đăng ký thành công! Hãy bấm Đăng nhập.";
+            msg.style.color = "green";
+            msg.innerText = "Đăng ký thành công! Hãy bấm Đăng nhập.";
             switchAuth('log');
           }
         } else {
-          document.getElementById("authMsg").style.color = "red";
-          document.getElementById("authMsg").innerText = data.detail || "Lỗi xử lý!";
+          msg.style.color = "red";
+          msg.innerText = data.detail || "Lỗi xử lý!";
         }
       } catch (err) {
-        document.getElementById("authMsg").innerText = "Không thể kết nối đến Backend!";
+        msg.style.color = "red";
+        msg.innerText = "Không thể kết nối đến Backend (hoặc server đang khởi động)!";
+      } finally {
+        // 2. Mở lại nút bấm khi hoàn tất
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.innerText = isLoginMode ? "Đăng nhập" : "Đăng ký (Nhận 100 EduXu)";
       }
     }
 
@@ -163,7 +175,10 @@
       document.getElementById("authSection").style.display = "none";
       document.getElementById("mainDashboard").style.display = "block";
       document.getElementById("displayUsername").innerText = username;
-      refreshAll();
+      
+      // Chỉ tải số dư ví và tab mặc định (Chợ tài liệu)
+      updateWallet();
+      loadMarket();
     }
 
     function handleLogout() {
