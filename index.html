@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyHub - Sàn Tài Liệu & Diễn Đàn</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; padding: 20px; }
+    .container { max-width: 850px; margin: 20px auto; }
+    .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2, h3 { margin-top: 0; color: #333; }
+    
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .nav-btn { flex: 1; padding: 10px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
+    
+    input, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button.btn-action { background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    button.btn-action:hover { background: #0056b3; }
+    
+    .wallet-box { background: #e8f5e9; border-left: 5px solid #28a745; padding: 15px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .balance-num { font-size: 24px; font-weight: bold; color: #1b5e20; }
+    
+    .deposit-box { display: flex; gap: 10px; margin-top: 10px; }
+    .deposit-box input { width: 160px; margin: 0; }
+    
+    .item-row { border: 1px solid #eee; padding: 14px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+    .post-box { border-left: 4px solid #007bff; background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .comment-item { background: #f1f3f5; padding: 8px 12px; border-radius: 6px; margin-top: 6px; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1 style="text-align: center; color: #007bff;">📚 StudyHub</h1>
+
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ -->
+    <div class="card" id="authSection">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button type="button" class="nav-btn active" id="tabLog" onclick="switchAuth('log')">Đăng nhập</button>
+        <button type="button" class="nav-btn" id="tabReg" onclick="switchAuth('reg')">Đăng ký tài khoản</button>
+      </div>
+      
+      <p id="authMsg" style="font-weight: bold;"></p>
+      
+      <input type="text" id="authUsername" placeholder="Tên đăng nhập...">
+      <input type="password" id="authPassword" placeholder="Mật khẩu...">
+      
+      <button type="button" class="btn-action" id="btnSubmitAuth" onclick="submitAuth()" style="width: 100%;">Đăng nhập</button>
+    </div>
+
+    <!-- 2. BẢNG ĐIỀU KHIỂN CHÍNH SAU KHI ĐĂNG NHẬP -->
+    <div id="mainDashboard" style="display: none;">
+      
+      <!-- Khung ví tiền & Nạp tiền -->
+      <div class="card wallet-box">
+        <div>
+          <div>Xin chào, <b id="displayUsername">...</b> 👋</div>
+          <div class="balance-num" id="displayBalance">0 EduXu</div>
+          
+          <!-- Khu vực nạp tiền -->
+          <div class="deposit-box">
+            <input type="number" id="depositAmount" placeholder="Số xu muốn nạp..." value="100">
+            <button type="button" class="btn-action" onclick="handleDeposit()" style="background: #28a745; padding: 8px 12px;">+ Nạp Xu</button>
+          </div>
+        </div>
+
+        <button type="button" onclick="handleLogout()" style="background: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">Đăng xuất</button>
+      </div>
+
+      <!-- Menu chuyển đổi chức năng -->
+      <div class="nav-tabs">
+        <button type="button" class="nav-btn active" id="btnTabMarket" onclick="showMainTab('market')">🛒 Chợ Tài Liệu</button>
+        <button type="button" class="nav-btn" id="btnTabForum" onclick="showMainTab('forum')">💬 Diễn Đàn Thảo Luận</button>
+        <button type="button" class="nav-btn" id="btnTabSell" onclick="showMainTab('sell')">➕ Đăng Bán Tài Liệu</button>
+      </div>
+
+      <!-- TAB 1: CHỢ TÀI LIỆU -->
+      <div class="card" id="tabContentMarket">
+        <h3>Tài liệu học tập đang mở bán</h3>
+        <div id="marketList">Đang tải...</div>
+      </div>
+
+      <!-- TAB 2: DIỄN ĐÀN THẢO LUẬN -->
+      <div class="card" id="tabContentForum" style="display: none;">
+        <h3>Đăng bài viết mới</h3>
+        <input type="text" id="postTitle" placeholder="Tiêu đề câu hỏi / thảo luận...">
+        <textarea id="postContent" rows="3" placeholder="Nội dung chi tiết..."></textarea>
+        <button type="button" class="btn-action" onclick="submitPost()">Đăng bài</button>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <h3>Các thảo luận gần đây</h3>
+        <div id="forumPosts">Đang tải bài viết...</div>
+      </div>
+
+      <!-- TAB 3: ĐĂNG BÁN TÀI LIỆU -->
+      <div class="card" id="tabContentSell" style="display: none;">
+        <h3>Đăng bán tài liệu kiếm EduXu</h3>
+        <input type="text" id="itemTitle" placeholder="Tên tài liệu (VD: Đề cương Toán 12...)">
+        <input type="number" id="itemPrice" placeholder="Giá bán (Số EduXu, VD: 20)">
+        <input type="text" id="itemUrl" placeholder="Đường link tải tài liệu (VD: https://drive.google.com/...)">
+        <button type="button" class="btn-action" onclick="submitItem()" style="background: #28a745;">Đăng lên Chợ</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:8000/api";
+    let isLoginMode = true;
+
+    // Tự động kiểm tra trạng thái đăng nhập khi mở trang
+    window.onload = function() {
+      const token = localStorage.getItem("token");
+      const username = localStorage.getItem("username");
+      if (token && username) {
+        showDashboard(username);
+      }
+    };
+
+    function switchAuth(mode) {
+      isLoginMode = mode === 'log';
+      document.getElementById("tabLog").className = `nav-btn ${isLoginMode ? 'active' : ''}`;
+      document.getElementById("tabReg").className = `nav-btn ${!isLoginMode ? 'active' : ''}`;
+      document.getElementById("btnSubmitAuth").innerText = isLoginMode ? "Đăng nhập" : "Đăng ký (Nhận 100 EduXu)";
+      document.getElementById("authMsg").innerText = "";
+    }
+
+    async function submitAuth() {
+      const u = document.getElementById("authUsername").value;
+      const p = document.getElementById("authPassword").value;
+      const endpoint = isLoginMode ? "/login" : "/register";
+
+      try {
+        const res = await fetch(API + endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          if (isLoginMode) {
+            // LƯU TOKEN VÀO LOCALSTORAGE ĐỂ KHÔNG BỊ MẤT KHI TẢI LẠI TRANG
+            localStorage.setItem("token", data.access_token);
+            localStorage.setItem("username", u);
+            showDashboard(u);
+          } else {
+            document.getElementById("authMsg").style.color = "green";
+            document.getElementById("authMsg").innerText = "Đăng ký thành công! Hãy bấm Đăng nhập.";
+            switchAuth('log');
+          }
+        } else {
+          document.getElementById("authMsg").style.color = "red";
+          document.getElementById("authMsg").innerText = data.detail || "Lỗi xử lý!";
+        }
+      } catch (err) {
+        document.getElementById("authMsg").innerText = "Không thể kết nối đến Backend!";
+      }
+    }
+
+    function showDashboard(username) {
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("mainDashboard").style.display = "block";
+      document.getElementById("displayUsername").innerText = username;
+      refreshAll();
+    }
+
+    function handleLogout() {
+      // Xóa token khỏi bộ nhớ trình duyệt
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      document.getElementById("mainDashboard").style.display = "none";
+      document.getElementById("authSection").style.display = "block";
+    }
+
+    function showMainTab(tab) {
+      document.getElementById("tabContentMarket").style.display = tab === 'market' ? 'block' : 'none';
+      document.getElementById("tabContentForum").style.display = tab === 'forum' ? 'block' : 'none';
+      document.getElementById("tabContentSell").style.display = tab === 'sell' ? 'block' : 'none';
+
+      document.getElementById("btnTabMarket").className = `nav-btn ${tab === 'market' ? 'active' : ''}`;
+      document.getElementById("btnTabForum").className = `nav-btn ${tab === 'forum' ? 'active' : ''}`;
+      document.getElementById("btnTabSell").className = `nav-btn ${tab === 'sell' ? 'active' : ''}`;
+      
+      if(tab === 'market') loadMarket();
+      if(tab === 'forum') loadPosts();
+    }
+
+    async function updateWallet() {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/my-wallet`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) { handleLogout(); return; }
+      const data = await res.json();
+      document.getElementById("displayBalance").innerText = `${data.balance_eduxu} EduXu`;
+    }
+
+    // --- NẠP TIỀN VÍ ---
+    async function handleDeposit() {
+      const amount = parseInt(document.getElementById("depositAmount").value);
+      if (!amount || amount <= 0) return alert("Vui lòng nhập số xu hợp lệ!");
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/deposit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount: amount })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail);
+      updateWallet();
+    }
+
+    // --- CHỢ TÀI LIỆU ---
+    async function loadMarket() {
+      const res = await fetch(`${API}/items`);
+      const items = await res.json();
+      const div = document.getElementById("marketList");
+      if (items.length === 0) return div.innerHTML = "<p>Chưa có tài liệu nào.</p>";
+
+      div.innerHTML = items.map(it => `
+        <div class="item-row">
+          <div>
+            <b>${it.title}</b><br>
+            <small style="color: #666;">Người bán: ${it.seller} | Giá: <b style="color: #28a745;">${it.price} EduXu</b></small>
+          </div>
+          <button type="button" class="btn-action" onclick="buyItem(${it.id})" style="background: #28a745;">Mua ngay</button>
+        </div>
+      `).join('');
+    }
+
+    async function submitItem() {
+      const title = document.getElementById("itemTitle").value;
+      const price = parseInt(document.getElementById("itemPrice").value);
+      const url = document.getElementById("itemUrl").value;
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title, price, content_url: url })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail);
+      showMainTab('market');
+    }
+
+    async function buyItem(id) {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/buy-item`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ item_id: id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`${data.message}\nLink tài liệu: ${data.content_url}`);
+        updateWallet();
+      } else {
+        alert(data.detail);
+      }
+    }
+
+    // --- DIỄN ĐÀN ---
+    async function submitPost() {
+      const title = document.getElementById("postTitle").value;
+      const content = document.getElementById("postContent").value;
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API}/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ title, content })
+      });
+      if (res.ok) {
+        document.getElementById("postTitle").value = "";
+        document.getElementById("postContent").value = "";
+        loadPosts();
+      }
+    }
+
+    async function loadPosts() {
+      const res = await fetch(`${API}/posts`);
+      const posts = await res.json();
+      const div = document.getElementById("forumPosts");
+      if (posts.length === 0) return div.innerHTML = "<p>Chưa có bài viết nào.</p>";
+
+      div.innerHTML = posts.map(p => `
+        <div class="post-box">
+          <h4>${p.title}</h4>
+          <p>${p.content}</p>
+          <small style="color: #666;">Đăng bởi: <b>${p.author}</b> - ${p.created_at}</small>
+          
+          <div style="margin-top: 10px; display: flex; gap: 5px;">
+            <input type="text" id="cmtInput-${p.id}" placeholder="Viết bình luận..." style="margin: 0;">
+            <button type="button" class="btn-action" onclick="submitComment(${p.id})">Gửi</button>
+          </div>
+          <div id="cmtList-${p.id}" style="margin-top: 8px;"></div>
+        </div>
+      `).join('');
+
+      posts.forEach(p => loadComments(p.id));
+    }
+
+    async function submitComment(postId) {
+      const input = document.getElementById(`cmtInput-${postId}`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ post_id: postId, content: input.value })
+      });
+      if (res.ok) {
+        input.value = "";
+        loadComments(postId);
+      }
+    }
+
+    async function loadComments(postId) {
+      const res = await fetch(`${API}/posts/${postId}/comments`);
+      const cmts = await res.json();
+      const div = document.getElementById(`cmtList-${postId}`);
+      div.innerHTML = cmts.map(c => `
+        <div class="comment-item"><b>${c.commenter}:</b> ${c.content}</div>
+      `).join('');
+    }
+
+    function refreshAll() {
+      updateWallet();
+      loadMarket();
+      loadPosts();
+    }
+  </script>
+</body>
+</html>
