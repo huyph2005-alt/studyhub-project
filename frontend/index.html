@@ -53,10 +53,12 @@
       
       <p id="authMsg" style="font-weight: bold;"></p>
       
-      <input type="text" id="authUsername" placeholder="Tên đăng nhập...">
-      <input type="password" id="authPassword" placeholder="Mật khẩu...">
-      
-      <button type="button" class="btn-action" id="btnSubmitAuth" onclick="submitAuth()" style="width: 100%;">Đăng nhập</button>
+      <!-- Bọc vào form để khi bấm Enter tự động kích hoạt submit -->
+      <form onsubmit="handleAuthSubmit(event)">
+        <input type="text" id="authUsername" placeholder="Tên đăng nhập..." required autocomplete="username">
+        <input type="password" id="authPassword" placeholder="Mật khẩu..." required autocomplete="current-password">
+        <button type="submit" class="btn-action" id="btnSubmitAuth" style="width: 100%;">Đăng nhập</button>
+      </form>
     </div>
 
     <!-- 2. BẢNG ĐIỀU KHIỂN CHÍNH -->
@@ -121,6 +123,13 @@
   </div>
 
   <script>
+
+
+    function handleAuthSubmit(event) {
+      if (event) event.preventDefault(); // Ngăn trình duyệt tải lại toàn bộ trang
+      submitAuth();
+    }
+
     const API = "https://studyhub-project-4dry.onrender.com/api";
     let isLoginMode = true;
 
