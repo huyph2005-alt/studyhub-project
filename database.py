@@ -11,6 +11,7 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,11 +21,13 @@ def init_db():
             role TEXT DEFAULT 'member'
         )
     """)
-    # Tự động thêm cột role nếu database cũ chưa có
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'")
-    except Exception:
-        pass
+
+    # Tự động bổ sung các cột nếu database cũ bị thiếu
+    for col_def in ["balance_eduxu INTEGER DEFAULT 100", "role TEXT DEFAULT 'member'"]:
+        try:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
+        except Exception:
+            pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS items (
@@ -36,6 +39,7 @@ def init_db():
             FOREIGN KEY (seller_id) REFERENCES users (id)
         )
     """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +50,7 @@ def init_db():
             FOREIGN KEY (author_id) REFERENCES users (id)
         )
     """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS comments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,12 +62,15 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
-    
-    # Tạo tài khoản Admin mặc định nếu chưa tồn tại
-    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
-    if not cursor.fetchone():
-        hashed_admin_pw = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-        cursor.execute("INSERT INTO users (username, password, balance_eduxu, role) VALUES ('admin', ?, 9999, 'admin')", (hashed_admin_pw,))
+
+    # Kiểm tra và tạo tài khoản Admin an toàn
+    try:
+        cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+        if not cursor.fetchone():
+            hashed_admin_pw = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            cursor.execute("INSERT INTO users (username, password, balance_eduxu, role) VALUES ('admin', ?, 9999, 'admin')", (hashed_admin_pw,))
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()
