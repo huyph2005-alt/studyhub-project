@@ -12,6 +12,15 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
+    # Kiểm tra xem bảng users có cột password chuẩn chưa, nếu lỗi cấu trúc thì làm mới bảng
+    try:
+        cursor.execute("SELECT password, role, balance_eduxu FROM users LIMIT 1")
+    except Exception:
+        cursor.execute("DROP TABLE IF EXISTS comments")
+        cursor.execute("DROP TABLE IF EXISTS posts")
+        cursor.execute("DROP TABLE IF EXISTS items")
+        cursor.execute("DROP TABLE IF EXISTS users")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,13 +30,6 @@ def init_db():
             role TEXT DEFAULT 'member'
         )
     """)
-
-    # Tự động bổ sung các cột nếu database cũ bị thiếu
-    for col_def in ["balance_eduxu INTEGER DEFAULT 100", "role TEXT DEFAULT 'member'"]:
-        try:
-            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
-        except Exception:
-            pass
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS items (
@@ -63,14 +65,14 @@ def init_db():
         )
     """)
 
-    # Kiểm tra và tạo tài khoản Admin an toàn
-    try:
-        cursor.execute("SELECT id FROM users WHERE username = 'admin'")
-        if not cursor.fetchone():
-            hashed_admin_pw = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-            cursor.execute("INSERT INTO users (username, password, balance_eduxu, role) VALUES ('admin', ?, 9999, 'admin')", (hashed_admin_pw,))
-    except Exception:
-        pass
+    # Tạo sẵn tài khoản admin mặc định
+    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+    if not cursor.fetchone():
+        hashed_admin_pw = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        cursor.execute("""
+            INSERT INTO users (username, password, balance_eduxu, role) 
+            VALUES ('admin', ?, 9999, 'admin')
+        """, (hashed_admin_pw,))
 
     conn.commit()
     conn.close()
