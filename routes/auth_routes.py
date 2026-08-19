@@ -5,6 +5,24 @@ from auth import hash_password, verify_password, create_access_token, get_curren
 
 router = APIRouter(prefix="/api", tags=["1. Xác thực & Admin"])
 
+# API tạo/khôi phục tài khoản Admin
+@router.get("/setup-admin")
+def setup_admin():
+    conn = get_db()
+    cursor = conn.cursor()
+    hashed = hash_password("admin123")
+    
+    # Xóa admin cũ nếu có và tạo lại chuẩn xác
+    cursor.execute("DELETE FROM users WHERE username = 'admin'")
+    cursor.execute("""
+        INSERT INTO users (username, password, balance_eduxu, role) 
+        VALUES ('admin', ?, 9999, 'admin')
+    """, (hashed,))
+    
+    conn.commit()
+    conn.close()
+    return {"message": "Tạo tài khoản Admin thành công: admin / admin123"}
+
 @router.post("/register")
 def register(user_data: UserAuth):
     conn = get_db()
