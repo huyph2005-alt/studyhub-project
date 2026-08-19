@@ -33,7 +33,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, username, balance_eduxu FROM users WHERE id = ?", (user_id,))
+    cursor.execute("SELECT id, username, balance_eduxu, role FROM users WHERE id = ?", (user_id,))
     user = cursor.fetchone()
     conn.close()
     if not user:

@@ -1,4 +1,5 @@
 ﻿import sqlite3
+import bcrypt
 
 DATABASE_NAME = "studyhub.db"
 
@@ -15,9 +16,16 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            balance_eduxu INTEGER DEFAULT 100
+            balance_eduxu INTEGER DEFAULT 100,
+            role TEXT DEFAULT 'member'
         )
     """)
+    # Tự động thêm cột role nếu database cũ chưa có
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'")
+    except Exception:
+        pass
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,5 +57,12 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     """)
+    
+    # Tạo tài khoản Admin mặc định nếu chưa tồn tại
+    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+    if not cursor.fetchone():
+        hashed_admin_pw = bcrypt.hashpw("admin123".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        cursor.execute("INSERT INTO users (username, password, balance_eduxu, role) VALUES ('admin', ?, 9999, 'admin')", (hashed_admin_pw,))
+
     conn.commit()
     conn.close()

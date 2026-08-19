@@ -10,8 +10,8 @@
     .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     h2, h3 { margin-top: 0; color: #333; }
     
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-    .nav-btn { flex: 1; padding: 10px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .nav-btn { flex: 1; min-width: 120px; padding: 10px; border: 1px solid #ccc; background: white; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
     
     input, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
@@ -29,6 +29,14 @@
     .comment-item { background: #f1f3f5; padding: 8px 12px; border-radius: 6px; margin-top: 6px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
     .btn-danger { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-warning { background: #ffc107; color: black; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+    /* Bảng danh sách thành viên */
+    table.user-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table.user-table th, table.user-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    table.user-table th { background-color: #007bff; color: white; }
+    table.user-table tr:nth-child(even) { background-color: #f9f9f9; }
+    .badge-admin { background: #e63946; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .badge-member { background: #6c757d; color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -54,10 +62,9 @@
     <!-- 2. BẢNG ĐIỀU KHIỂN CHÍNH -->
     <div id="mainDashboard" style="display: none;">
       
-      <!-- Khung ví tiền -->
       <div class="card wallet-box">
         <div>
-          <div>Xin chào, <b id="displayUsername">...</b> 👋</div>
+          <div>Xin chào, <b id="displayUsername">...</b> 👋 <span id="displayRoleBadge"></span></div>
           <div class="balance-num" id="displayBalance">0 EduXu</div>
           
           <div class="deposit-box">
@@ -69,11 +76,12 @@
         <button type="button" onclick="handleLogout()" class="btn-danger" style="padding: 10px 15px;">Đăng xuất</button>
       </div>
 
-      <!-- Menu chuyển đổi chức năng -->
+      <!-- Menu chuyển đổi tab -->
       <div class="nav-tabs">
         <button type="button" class="nav-btn active" id="btnTabMarket" onclick="showMainTab('market')">🛒 Chợ Tài Liệu</button>
         <button type="button" class="nav-btn" id="btnTabForum" onclick="showMainTab('forum')">💬 Diễn Đàn Thảo Luận</button>
         <button type="button" class="nav-btn" id="btnTabSell" onclick="showMainTab('sell')">➕ Đăng Bán Tài Liệu</button>
+        <button type="button" class="nav-btn" id="btnTabAdmin" onclick="showMainTab('admin')" style="display: none; background: #6f42c1; color: white;">👑 Quản trị viên</button>
       </div>
 
       <!-- TAB 1: CHỢ TÀI LIỆU -->
@@ -103,6 +111,12 @@
         <button type="button" class="btn-action" onclick="submitItem()" style="background: #28a745;">Đăng lên Chợ</button>
       </div>
 
+      <!-- TAB 4: QUẢN TRỊ ADMIN -->
+      <div class="card" id="tabContentAdmin" style="display: none;">
+        <h3>👑 Danh sách toàn bộ thành viên hệ thống</h3>
+        <div id="adminUserList">Đang tải danh sách...</div>
+      </div>
+
     </div>
   </div>
 
@@ -113,7 +127,8 @@
     window.onload = function() {
       const token = localStorage.getItem("token");
       const username = localStorage.getItem("username");
-      if (token && username) showDashboard(username);
+      const role = localStorage.getItem("role");
+      if (token && username) showDashboard(username, role);
     };
 
     function switchAuth(mode) {
@@ -137,7 +152,7 @@
       }
 
       btn.disabled = true;
-      btn.innerText = isLoginMode ? "Đang đăng nhập..." : "Đang đăng ký...";
+      btn.innerText = isLoginMode ? "Đang xử lý..." : "Đang đăng ký...";
 
       try {
         const endpoint = isLoginMode ? "/login" : "/register";
@@ -152,7 +167,8 @@
           if (isLoginMode) {
             localStorage.setItem("token", data.access_token);
             localStorage.setItem("username", u);
-            showDashboard(u);
+            localStorage.setItem("role", data.role || "member");
+            showDashboard(u, data.role);
           } else {
             msg.style.color = "green";
             msg.innerText = "Đăng ký thành công! Hãy đăng nhập.";
@@ -171,10 +187,21 @@
       }
     }
 
-    function showDashboard(username) {
+    function showDashboard(username, role) {
       document.getElementById("authSection").style.display = "none";
       document.getElementById("mainDashboard").style.display = "block";
       document.getElementById("displayUsername").innerText = username;
+
+      const badge = document.getElementById("displayRoleBadge");
+      const adminBtn = document.getElementById("btnTabAdmin");
+      if (role === "admin") {
+        badge.innerHTML = `<span class="badge-admin">Admin</span>`;
+        adminBtn.style.display = "inline-block";
+      } else {
+        badge.innerHTML = `<span class="badge-member">Thành viên</span>`;
+        adminBtn.style.display = "none";
+      }
+
       updateWallet();
       loadMarket();
     }
@@ -182,6 +209,7 @@
     function handleLogout() {
       localStorage.removeItem("token");
       localStorage.removeItem("username");
+      localStorage.removeItem("role");
       document.getElementById("mainDashboard").style.display = "none";
       document.getElementById("authSection").style.display = "block";
     }
@@ -190,10 +218,19 @@
       document.getElementById("tabContentMarket").style.display = tab === 'market' ? 'block' : 'none';
       document.getElementById("tabContentForum").style.display = tab === 'forum' ? 'block' : 'none';
       document.getElementById("tabContentSell").style.display = tab === 'sell' ? 'block' : 'none';
+      document.getElementById("tabContentAdmin").style.display = tab === 'admin' ? 'block' : 'none';
 
       document.getElementById("btnTabMarket").className = `nav-btn ${tab === 'market' ? 'active' : ''}`;
       document.getElementById("btnTabForum").className = `nav-btn ${tab === 'forum' ? 'active' : ''}`;
       document.getElementById("btnTabSell").className = `nav-btn ${tab === 'sell' ? 'active' : ''}`;
+      
+      const adminTabBtn = document.getElementById("btnTabAdmin");
+      if (tab === 'admin') {
+        adminTabBtn.className = "nav-btn active";
+        loadAdminUsers();
+      } else {
+        adminTabBtn.className = "nav-btn";
+      }
       
       if(tab === 'market') loadMarket();
       if(tab === 'forum') loadPosts();
@@ -221,7 +258,43 @@
       updateWallet();
     }
 
-    // --- CHỢ TÀI LIỆU (MUA, SỬA GIÁ, XÓA) ---
+    // --- TAB QUẢN TRỊ ADMIN ---
+    async function loadAdminUsers() {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const div = document.getElementById("adminUserList");
+      if (!res.ok) {
+        div.innerHTML = "<p style='color: red;'>Không có quyền truy cập!</p>";
+        return;
+      }
+      const users = await res.json();
+      div.innerHTML = `
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tên người dùng</th>
+              <th>Số dư EduXu</th>
+              <th>Vai trò</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td>#${u.id}</td>
+                <td><b>${u.username}</b></td>
+                <td><b style="color: #28a745;">${u.balance_eduxu}</b></td>
+                <td>${u.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '<span class="badge-member">Thành viên</span>'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // --- CHỢ TÀI LIỆU ---
     async function loadMarket() {
       const currentUsername = localStorage.getItem("username");
       const res = await fetch(`${API}/items`);
@@ -306,7 +379,7 @@
       }
     }
 
-    // --- DIỄN ĐÀN (ĐĂNG BÀI, XÓA BÀI, BÌNH LUẬN, XÓA BÌNH LUẬN) ---
+    // --- DIỄN ĐÀN ---
     async function submitPost() {
       const title = document.getElementById("postTitle").value;
       const content = document.getElementById("postContent").value;
